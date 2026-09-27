@@ -155,7 +155,7 @@
         .sort-indicator { color: var(--accent); font-size: 0.95rem; }
 
         td {
-            height: 54px;
+            height: 44px;
             border-top: 1px solid #2d3b37;
             font-size: 0.94rem;
         }
@@ -190,6 +190,44 @@
         tbody tr.pinned-row { background: var(--accent-wash); }
         tbody tr.pinned-row { box-shadow: inset 3px 0 var(--accent); }
 
+        .back-to-top {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 2;
+            display: grid;
+            width: 48px;
+            height: 48px;
+            place-items: center;
+            border: 1px solid var(--accent);
+            border-radius: 2px;
+            background: var(--surface-raised);
+            box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+            color: var(--accent);
+            cursor: pointer;
+            font: inherit;
+            font-size: 1.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: opacity 180ms ease, transform 180ms ease, background-color 180ms ease;
+            visibility: hidden;
+        }
+
+        .back-to-top.is-visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+            visibility: visible;
+        }
+
+        .back-to-top:hover { background: var(--accent-wash); }
+
+        .back-to-top:focus-visible {
+            outline: 2px solid var(--highlight);
+            outline-offset: 3px;
+        }
+
         #status {
             min-height: 24px;
             margin: 14px 2px 0;
@@ -213,10 +251,12 @@
             main { width: min(100% - 28px, 960px); margin-top: 36px; }
             .intro { margin-bottom: 22px; }
             th, td { min-width: 132px; padding-right: 16px; padding-left: 16px; }
+            .back-to-top { right: 16px; bottom: 16px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation-duration: 0.01ms !important; }
+            .back-to-top { transition: none; }
         }
     </style>
 </head>
@@ -233,6 +273,7 @@
         </section>
         <p id="status" role="status"></p>
     </main>
+    <button class="back-to-top" id="back-to-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
 
     <script>
         function parseCsv(text) {
@@ -482,6 +523,20 @@
             document.querySelector("#table-search"),
             "cpus.csv"
         ).load();
+
+        const backToTopButton = document.querySelector("#back-to-top");
+        const updateBackToTopVisibility = () => {
+            backToTopButton.classList.toggle("is-visible", window.scrollY > 400);
+        };
+
+        window.addEventListener("scroll", updateBackToTopVisibility, { passive: true });
+        backToTopButton.addEventListener("click", () => {
+            const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+                ? "instant"
+                : "smooth";
+            window.scrollTo({ top: 0, behavior });
+        });
+        updateBackToTopVisibility();
     </script>
 </body>
 </html>
