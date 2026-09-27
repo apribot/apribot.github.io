@@ -112,6 +112,13 @@
             border-top: 1px solid var(--line);
         }
 
+        th.pin-column, td.pin-column {
+            width: 56px;
+            min-width: 56px;
+            padding: 0 8px;
+            text-align: center;
+        }
+
         th {
             height: 52px;
             color: #c7d6d0;
@@ -153,13 +160,34 @@
             font-size: 0.94rem;
         }
 
+        .pin-button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font: inherit;
+            font-size: 1rem;
+        }
+
+        .pin-button:hover, .pin-button[aria-pressed="true"] {
+            border-color: var(--accent);
+            background: var(--accent-wash);
+            color: var(--accent);
+        }
+
+        .pin-button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
         .empty-state { color: var(--muted); }
 
         tbody tr { animation: row-arrive 300ms ease-out both; }
         tbody tr:nth-child(even) { background: var(--surface-striped); }
-        tbody tr[data-row-index] { cursor: pointer; }
-        tbody tr[data-row-index]:hover, tbody tr.pinned-row { background: var(--accent-wash); }
-        tbody tr[data-row-index]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        tbody tr.pinned-row { background: var(--accent-wash); }
         tbody tr.pinned-row { box-shadow: inset 3px 0 var(--accent); }
 
         #status {
@@ -276,22 +304,16 @@
                 });
 
                 this.container.addEventListener("click", (event) => {
-                    const button = event.target.closest("[data-column]");
-                    if (button) {
-                        this.sortBy(Number(button.dataset.column));
+                    const pinButton = event.target.closest("[data-pin-row]");
+                    if (pinButton) {
+                        this.togglePinnedRow(Number(pinButton.dataset.pinRow));
                         return;
                     }
 
-                    const row = event.target.closest("tbody tr[data-row-index]");
-                    if (row) this.togglePinnedRow(Number(row.dataset.rowIndex));
-                });
-
-                this.container.addEventListener("keydown", (event) => {
-                    if (event.key !== "Enter" && event.key !== " ") return;
-                    const row = event.target.closest("tbody tr[data-row-index]");
-                    if (!row || event.target !== row) return;
-                    event.preventDefault();
-                    this.togglePinnedRow(Number(row.dataset.rowIndex));
+                    const button = event.target.closest("[data-column]");
+                    if (button) {
+                        this.sortBy(Number(button.dataset.column));
+                    }
                 });
             }
 
@@ -390,6 +412,12 @@
             render() {
                 const table = document.createElement("table");
                 const head = table.createTHead().insertRow();
+                const pinHeading = document.createElement("th");
+                pinHeading.className = "pin-column";
+                pinHeading.scope = "col";
+                pinHeading.textContent = "Pin";
+                head.append(pinHeading);
+
                 this.columns.forEach((column, columnIndex) => {
                     const heading = document.createElement("th");
                     const button = document.createElement("button");
@@ -415,7 +443,7 @@
                 if (visibleRows.length === 0) {
                     const row = body.insertRow();
                     const cell = row.insertCell();
-                    cell.colSpan = this.columns.length;
+                    cell.colSpan = this.columns.length + 1;
                     cell.className = "empty-state";
                     cell.textContent = "No matching rows";
                 }
@@ -423,11 +451,20 @@
                 visibleRows.forEach(({ cells, index }) => {
                     const row = body.insertRow();
                     row.dataset.rowIndex = index;
-                    row.tabIndex = 0;
-                    row.title = this.pinnedRowIndexes.has(index)
-                        ? "Pinned to top. Click or press Enter to unpin."
-                        : "Click or press Enter to pin to top.";
-                    if (this.pinnedRowIndexes.has(index)) row.classList.add("pinned-row");
+                    const isPinned = this.pinnedRowIndexes.has(index);
+                    if (isPinned) row.classList.add("pinned-row");
+
+                    const pinCell = row.insertCell();
+                    const pinButton = document.createElement("button");
+                    pinCell.className = "pin-column";
+                    pinButton.type = "button";
+                    pinButton.className = "pin-button";
+                    pinButton.dataset.pinRow = index;
+                    pinButton.setAttribute("aria-pressed", String(isPinned));
+                    pinButton.setAttribute("aria-label", `${isPinned ? "Unpin" : "Pin"} ${cells[0] || "row"}`);
+                    pinButton.title = isPinned ? "Unpin row" : "Pin row to top";
+                    pinButton.textContent = "☆";
+                    pinCell.append(pinButton);
 
                     cells.forEach((value) => {
                         const cell = row.insertCell();
